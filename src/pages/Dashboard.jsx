@@ -76,19 +76,38 @@ const chartData = [
   { name: "Claims", count: claimCount },
 ];
 
-const updateClaimStatus = async (id, status) => {
+const updateClaimStatus = async (id, status,email) => {
   const {data, error } = await supabase
     .from("claims")
     .update({ status:status })
-    .eq("id", id);
-    select();
-
+    .eq("id", id)
+    .select();
     console.log("Updated data:",data);
     console.log("Updated error:",error);
 
   if (error) {
     alert(error.message);
   } else {
+  const response =await fetch("/api/send-email",{
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    to: email,
+    subject: `Claim ${status}`,
+html: `<p>Your claim has been ${status}</p>`,
+  })
+})
+const text = await response.text();
+console.log("Email API response:",text);
+console.log("Status:",response.status);
+console.log("Email response:",text);
+
+if (!response.ok){
+  alert("Email failed");
+  return;
+}
     alert(`Claim ${status}`);
     fetchClaims();
   }
@@ -141,16 +160,18 @@ const updateClaimStatus = async (id, status) => {
       <p>Item ID: {claim.item_id}</p>
       <p>User ID: {claim.user_id}</p>
       <p>Status: {claim.status}</p>
+      <p>Email:{claim.email}</p>
+      <p>Message:{claim.message}</p>
 
       <button
-  onClick={() => updateClaimStatus(claim.id, "approved")}
+  onClick={() => updateClaimStatus(claim.id, "approved",claim.email)}
   className="bg-green-600 text-white px-3 py-1 rounded mr-2"
 >
   Approve
 </button>
 
 <button
-  onClick={() => updateClaimStatus(claim.id, "rejected")}
+  onClick={() => updateClaimStatus(claim.id, "rejected",claim.email)}
   className="bg-red-600 text-white px-3 py-1 rounded"
 >
   Reject

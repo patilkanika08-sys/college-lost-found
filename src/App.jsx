@@ -12,6 +12,10 @@ import Dashboard from "./pages/Dashboard";
 import LostItem from "./pages/LostItem";
 import FoundItem from "./pages/FoundItem";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ClaimItem from "./pages/ClaimItem";
+import GroqAI from "./components/GroqAI";
+import GroqVision from "./pages/GroqVision";
+
 
 function App() {
   return (
@@ -28,7 +32,9 @@ function App() {
         
         <Route path="/lost-item"element={<LostItem />} />  
         <Route path="/found-item"element={<FoundItem />} />
-        
+        <Route path="/claim-item"element={<ClaimItem />} />
+       <Route path="/groq-ai"element={<GroqAI />} />
+       <Route path="/groq-vision"element={<GroqVision />} />
         
            </Routes>
       
