@@ -70,7 +70,7 @@ const { error } = await supabase
   description,
   location,
   date,
-  imageUrl:imageUrl,
+  image_url:imageUrl,
 })
 .eq("id", editId);
 
@@ -146,12 +146,14 @@ const claimItem = async (itemId) => {
   }
 
   const { error } = await supabase
-    .from("claims")
-    .insert({
-      item_id: itemId,
-      user_id: user.id,
-      status: "pending",
-    });
+  .from("claims")
+  .insert({
+    item_id: itemId,
+    user_id: user.id,
+    email: user.email,
+    message: "",
+    status: "pending",
+  });
 
   if (error) {
     alert(error.message);

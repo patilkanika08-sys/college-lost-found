@@ -5,15 +5,15 @@ const groq = new Groq({
   dangerouslyAllowBrowser: true,
 });
 
-export async function askGroq(prompt) {
+export async function askGroq(question) {
   const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
     messages: [
       {
         role: "user",
-        content: prompt,
+        content: question,
       },
     ],
-    model: "llama-3.1-8b-instant",
   });
 
   return response.choices[0].message.content;

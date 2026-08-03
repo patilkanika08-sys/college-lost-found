@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 export default function GroqVision() {
@@ -14,14 +13,23 @@ export default function GroqVision() {
     reader.onloadend = async () => {
       setLoading(true);
 
-      const res = await fetch("/api/groq-vision", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: reader.result }),
-      });
+      try {
+        const res = await fetch("/api/groq-vision", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            image: reader.result,
+          }),
+        });
 
-      const data = await res.json();
-      setResult(data.result || "No result");
+        const data = await res.json();
+        setResult(data.result || data.error);
+      } catch (error) {
+        setResult("Something went wrong!");
+      }
+
       setLoading(false);
     };
 
@@ -30,14 +38,18 @@ export default function GroqVision() {
 
   return (
     <div>
+      <h2>Groq Vision</h2>
+
       <input
         type="file"
         accept="image/*"
         onChange={(e) => setFile(e.target.files[0])}
       />
-      <button onClick={analyze} disabled={loading || !file}>
+
+      <button onClick={analyze} disabled={loading}>
         {loading ? "Analyzing..." : "Analyze"}
       </button>
+
       <p>{result}</p>
     </div>
   );

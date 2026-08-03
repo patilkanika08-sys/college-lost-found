@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/client";
+
 import {
   ResponsiveContainer,
   BarChart,
@@ -13,186 +14,421 @@ import {
 
 
 function Dashboard() {
+
   const navigate = useNavigate();
-  const [claims,setClaims] = useState([]);
+
+  const [claims, setClaims] = useState([]);
+
   const [lostCount, setLostCount] = useState(0);
-const [foundCount, setFoundCount] = useState(0);
-const [claimCount, setClaimCount] = useState(0);
+  const [foundCount, setFoundCount] = useState(0);
+  const [claimCount, setClaimCount] = useState(0);
+
+
 
   useEffect(() => {
+
     checkUser();
     fetchClaims();
-    fetchAnalytics(); 
+    fetchAnalytics();
+
   }, []);
 
+
+
   async function checkUser() {
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
+
     if (!user) {
       navigate("/login");
     }
+
   }
+
+
 
   async function fetchClaims() {
-  const { data, error } = await supabase
-    .from("claims")
-    .select("*");
 
-     console.log(data);
-  if (error) {
-    console.log(error);
-  } else {
-    setClaims(data);
+    const { data, error } = await supabase
+      .from("claims")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+
+    if (error) {
+
+      console.log(error);
+
+    } else {
+
+      setClaims(data);
+
+    }
+
   }
-}
-
-async function fetchAnalytics() {
-
-  const { count: lost } = await supabase
-    .from("items")
-    .select("*", { count: "exact", head: true })
-    .eq("type", "lost");
-
-  const { count: found } = await supabase
-    .from("items")
-    .select("*", { count: "exact", head: true })
-    .eq("type", "found");
-
-  const { count: claims } = await supabase
-    .from("claims")
-    .select("*", { count: "exact", head: true });
 
 
-  setLostCount(lost || 0);
-  setFoundCount(found || 0);
-  setClaimCount(claims || 0);
-}
 
-const chartData = [
-  { name: "Lost", count: lostCount },
-  { name: "Found", count: foundCount },
-  { name: "Claims", count: claimCount },
-];
+  async function fetchAnalytics() {
 
-const updateClaimStatus = async (id, status,email) => {
-  const {data, error } = await supabase
-    .from("claims")
-    .update({ status:status })
-    .eq("id", id)
-    .select();
-    console.log("Updated data:",data);
-    console.log("Updated error:",error);
 
-  if (error) {
-    alert(error.message);
-  } else {
-  const response =await fetch("/api/send-email",{
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    to: email,
-    subject: `Claim ${status}`,
-html: `<p>Your claim has been ${status}</p>`,
-  })
-})
-const text = await response.text();
-console.log("Email API response:",text);
-console.log("Status:",response.status);
-console.log("Email response:",text);
+    const { count: lost } = await supabase
+      .from("items")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("type", "lost");
 
-if (!response.ok){
-  alert("Email failed");
-  return;
-}
-    alert(`Claim ${status}`);
-    fetchClaims();
+
+
+    const { count: found } = await supabase
+      .from("items")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("type", "found");
+
+
+
+    const { count: claims } = await supabase
+      .from("claims")
+      .select("*", {
+        count: "exact",
+        head: true,
+      });
+
+
+
+    setLostCount(lost || 0);
+    setFoundCount(found || 0);
+    setClaimCount(claims || 0);
+
   }
-};
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold">
-        Welcome to Dashboard 🎉
-      </h1>
 
-      <div className="grid grid-cols-3 gap-4 mt-8">
 
-  <div className="bg-blue-500 text-white p-5 rounded-lg">
-    <h2 className="text-xl font-bold">Lost Items</h2>
-    <p className="text-3xl">{lostCount}</p>
-  </div>
 
-  <div className="bg-green-500 text-white p-5 rounded-lg">
-    <h2 className="text-xl font-bold">Found Items</h2>
-    <p className="text-3xl">{foundCount}</p>
-  </div>
+  async function updateClaimStatus(
+    id,
+    status,
+    email
+  ) {
 
-  <div className="bg-yellow-500 text-white p-5 rounded-lg">
-    <h2 className="text-xl font-bold">Claims</h2>
-    <p className="text-3xl">{claimCount}</p>
-  </div>
+  console.log("Email:",email);
+    if (!email) {
 
-</div>
-      
-      <div className="w-full max-w-2xl h-80 mt-8">
-  <ResponsiveContainer width="100%" height="100%">
-    <BarChart data={chartData}>
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="name" />
-      <YAxis />
-      <Tooltip />
-      <Bar dataKey="count" />
-    </BarChart>
-  </ResponsiveContainer>
-</div>
+      alert(
+        "User email not found!"
+      );
 
-      <div className="mt-8">
-  <h2 className="text-2xl font-bold">
-    Claim Requests
-  </h2>
+      return;
 
-  {claims.map((claim) => (
-    <div key={claim.id} className="bg-white p-4 mt-3 rounded shadow">
-      <p>Item ID: {claim.item_id}</p>
-      <p>User ID: {claim.user_id}</p>
-      <p>Status: {claim.status}</p>
-      <p>Email:{claim.email}</p>
-      <p>Message:{claim.message}</p>
+    }
 
-      <button
-  onClick={() => updateClaimStatus(claim.id, "approved",claim.email)}
-  className="bg-green-600 text-white px-3 py-1 rounded mr-2"
->
-  Approve
-</button>
 
-<button
-  onClick={() => updateClaimStatus(claim.id, "rejected",claim.email)}
-  className="bg-red-600 text-white px-3 py-1 rounded"
->
-  Reject
-</button>
 
+    const { error } = await supabase
+      .from("claims")
+      .update({
+        status: status,
+      })
+      .eq("id", id);
+
+
+
+    if (error) {
+
+      alert(error.message);
+
+      return;
+
+    }
+
+
+
+    try {
+
+
+      const response = await fetch(
+        "/api/send-email",
+        {
+
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+
+          body: JSON.stringify({
+
+            to: email,
+
+
+            subject:
+
+              status === "approved"
+
+                ? "Claim Approved - College Lost & Found"
+
+                : "Claim Rejected - College Lost & Found",
+
+
+
+            html: `
+
+            <div style="font-family:Arial;padding:20px">
+
+              <h2>
+                College Lost & Found
+              </h2>
+
+
+              <p>Hello,</p>
+
+
+              <p>
+              Your claim request has been
+              <b>
+              ${status.toUpperCase()}
+              </b>.
+              </p>
+
+
+              ${
+                status === "approved"
+
+                ?
+
+                `
+                <p>
+                Congratulations!
+                Your claim has been approved.
+                Please visit Lost & Found Office
+                with your college ID.
+                </p>
+                `
+
+                :
+
+                `
+                <p>
+                Your claim request has been rejected.
+                Please contact administrator
+                for more details.
+                </p>
+                `
+
+              }
+
+
+
+              <br/>
+
+              <p>
+              Regards,<br/>
+              College Lost & Found Team
+              </p>
+
+
+            </div>
+
+            `
+
+          }),
+
+        }
+      );
+
+
+
+      const result =
+        await response.json();
+
+
+
+      console.log(
+        "Email Result:",
+        result
+      );
+
+
+
+      if (!response.ok) {
+
+        alert(
+          result.message ||
+          "Email failed"
+        );
+
+        return;
+
+      }
+
+
+
+      alert(
+        `Claim ${status} successfully and email sent!`
+      );
+
+
+      fetchClaims();
+      fetchAnalytics();
+
+
+
+    }
+
+    catch(error) {
+
+
+      console.log(error);
+
+
+      alert(
+        "Something went wrong while sending email."
+      );
+
+
+    }
+
+
+  }
+
+
+
+
+  const chartData = [
+
+    {
+      name:"Lost",
+      count:lostCount,
+    },
+
+    {
+      name:"Found",
+      count:foundCount,
+    },
+
+    {
+      name:"Claims",
+      count:claimCount,
+    },
+
+  ];
+
+return (
+  <div className="min-h-screen bg-gray-100 p-6">
+    <h1 className="text-4xl font-bold text-center mb-8">
+      Welcome to Dashboard 🎉
+    </h1>
+
+    {/* Cards */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-blue-600 text-white rounded-xl shadow-lg p-6 h-32 flex flex-col justify-center">
+        <h2 className="text-lg font-semibold">Lost Items</h2>
+        <p className="text-4xl font-bold">{lostCount}</p>
       </div>
-  ))}
-</div>
 
-      <button
-  onClick={async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-  }}
+      <div className="bg-green-600 text-white rounded-xl shadow-lg p-6 h-32 flex flex-col justify-center">
+        <h2 className="text-lg font-semibold">Found Items</h2>
+        <p className="text-4xl font-bold">{foundCount}</p>
+      </div>
 
-  className="mt-6 bg-red-600 text-white px-6 py-2 rounded-lg"
->
-  Logout
-</button>
+      <div className="bg-yellow-500 text-white rounded-xl shadow-lg p-6 h-32 flex flex-col justify-center">
+        <h2 className="text-lg font-semibold">Claims</h2>
+        <p className="text-4xl font-bold">{claimCount}</p>
+      </div>
     </div>
-  );
+
+    {/* Chart */}
+    <div className="bg-white rounded-xl shadow-lg mt-8 p-6">
+      <h2 className="text-2xl font-semibold mb-4">
+        Analytics
+      </h2>
+
+      <ResponsiveContainer width="100%" height={350}>
+        <BarChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="count" fill="#2563eb" radius={[8, 8, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+
+    {/* Claim Requests */}
+    <div className="mt-10">
+      <h2 className="text-3xl font-bold mb-5">
+        Claim Requests
+      </h2>
+
+      {claims.length === 0 ? (
+        <p>No claim requests found.</p>
+      ) : (
+        claims.map((claim) => (
+          <div
+            key={claim.id}
+            className="bg-white rounded-xl shadow-lg p-6 mb-5"
+          >
+            <p><b>Item ID:</b> {claim.item_id}</p>
+            <p><b>User ID:</b> {claim.user_id}</p>
+            <p><b>Email:</b> {claim.email || "No Email Found"}</p>
+            <p><b>Status:</b> {claim.status}</p>
+            <p><b>Message:</b> {claim.message}</p>
+
+            <div className="flex gap-4 mt-5">
+              <button
+                onClick={() =>
+                  updateClaimStatus(
+                    claim.id,
+                    "approved",
+                    claim.email
+                  )
+                }
+                className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg"
+              >
+                Approve
+              </button>
+
+              <button
+                onClick={() =>
+                  updateClaimStatus(
+                    claim.id,
+                    "rejected",
+                    claim.email
+                  )
+                }
+                className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+
+    <button
+      onClick={async () => {
+        await supabase.auth.signOut();
+        navigate("/login");
+      }}
+      className="mt-8 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg"
+    >
+      Logout
+    </button>
+  </div>
+);
+
 }
+
 
 export default Dashboard;
