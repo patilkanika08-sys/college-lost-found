@@ -8,8 +8,16 @@ export default async function handler(req, res) {
   try {
     const { image } = req.body;
 
+    const apiKey = process.env.GROQ_API_KEY?.trim();
+
+    if (!apiKey) {
+      return res.status(500).json({
+        error: "GROQ_API_KEY is missing",
+      });
+    }
+
     const groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
+      apiKey: apiKey,
     });
 
     const response = await groq.chat.completions.create({
@@ -37,7 +45,7 @@ export default async function handler(req, res) {
       result: response.choices[0].message.content,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Groq Vision Error:", error);
 
     return res.status(500).json({
       error: error.message,
