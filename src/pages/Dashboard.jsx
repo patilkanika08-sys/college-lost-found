@@ -113,25 +113,92 @@ function Dashboard() {
 
 
 
-  async function updateClaimStatus(
-    id,
-    status,
-    email
-  ) {
+  
+            async function updateClaimStatus(id, status, email) {
+  console.log("Email:", email);
 
-  console.log("Email:",email);
-    if (!email) {
+  if (!email) {
+    alert("User email not found!");
+    return;
+  }
 
-      alert(
-        "User email not found!"
-      );
+  try {
+    // Send email first
+    const response = await fetch("/api/send-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to: email,
+        subject:
+          status === "approved"
+            ? "Claim Approved - College Lost & Found"
+            : "Claim Rejected - College Lost & Found",
 
-      return;
+        html: `
+          <div style="font-family: Arial; padding: 20px;">
+            <h2>College Lost & Found</h2>
 
+            <p>Hello,</p>
+
+            <p>
+              Your claim request has been
+              <b>${status.toUpperCase()}</b>.
+            </p>
+
+            ${
+              status === "approved"
+                ? `
+                  <p>
+                    Congratulations! Your claim has been approved.
+                    Please visit Lost & Found Office with your college ID.
+                  </p>
+                `
+                : `
+                  <p>
+                    Your claim request has been rejected.
+                    Please contact administrator for more details.
+                  </p>
+                `
+            }
+
+            <br />
+
+            <p>
+              Regards,<br />
+              College Lost & Found Team
+            </p>
+          </div>
+        `,
+      }),
+    });
+
+    // Read response safely
+    const text = await response.text();
+
+    console.log("API Response:", text);
+
+    let result;
+
+    try {
+      result = JSON.parse(text);
+    } catch {
+      result = {
+        message: text || "Invalid response from email server",
+      };
     }
 
+    // Email failed
+    if (!response.ok) {
+      alert(
+        result.message ||
+          "Email could not be sent."
+      );
+      return;
+    }
 
-
+    // Now update claim status
     const { error } = await supabase
       .from("claims")
       .update({
@@ -139,167 +206,30 @@ function Dashboard() {
       })
       .eq("id", id);
 
-
-
     if (error) {
-
-      alert(error.message);
-
+      alert(
+        "Email sent, but claim status could not be updated: " +
+          error.message
+      );
       return;
-
     }
 
-
-
-    try {
-
-
-      const response = await fetch(
-        "/api/send-email",
-        {
-
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-
-          body: JSON.stringify({
-
-            to: email,
-
-
-            subject:
-
-              status === "approved"
-
-                ? "Claim Approved - College Lost & Found"
-
-                : "Claim Rejected - College Lost & Found",
-
-
-
-            html: `
-
-            <div style="font-family:Arial;padding:20px">
-
-              <h2>
-                College Lost & Found
-              </h2>
-
-
-              <p>Hello,</p>
-
-
-              <p>
-              Your claim request has been
-              <b>
-              ${status.toUpperCase()}
-              </b>.
-              </p>
-
-
-              ${
-                status === "approved"
-
-                ?
-
-                `
-                <p>
-                Congratulations!
-                Your claim has been approved.
-                Please visit Lost & Found Office
-                with your college ID.
-                </p>
-                `
-
-                :
-
-                `
-                <p>
-                Your claim request has been rejected.
-                Please contact administrator
-                for more details.
-                </p>
-                `
-
-              }
-
-
-
-              <br/>
-
-              <p>
-              Regards,<br/>
-              College Lost & Found Team
-              </p>
-
-
-            </div>
-
-            `
-
-          }),
-
-        }
-      );
-
-
-
-      const result =
-        await response.json();
-
-
-
-      console.log(
-        "Email Result:",
-        result
-      );
-
-
-
-      if (!response.ok) {
-
-        alert(
-          result.message ||
-          "Email failed"
-        );
-
-        return;
-
-      }
-
-
-
-      alert(
-        `Claim ${status} successfully and email sent!`
-      );
-
-
-      fetchClaims();
-      fetchAnalytics();
-
-
-
-    }
-
-    catch(error) {
-
-
-      console.log(error);
-
-
-      alert(
-        "Something went wrong while sending email."
-      );
-
-
-    }
-
-
+    alert(
+      `Claim ${status} successfully and email sent!`
+    );
+
+    fetchClaims();
+    fetchAnalytics();
+
+  } catch (error) {
+    console.error("Email Error:", error);
+
+    alert(
+      "Something went wrong while sending email: " +
+        error.message
+    );
   }
+}
 
 
 
